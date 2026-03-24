@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: alerts
+    // Fields: threat_type (string), severity (string), source_ip (string), timestamp (string), status (string), details (string)
+    //
+    // Collection: traffic_logs
+    // Fields: source_ip (string), destination_ip (string), protocol (string), packet_size (number), timestamp (string), connection_count (number)
+    //
+    // Collection: blocked_ips
+    // Fields: ip_address (string), blocked_at (string), reason (string)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "LBmkhatshwa@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidAlert(data) {
+      return data.threat_type is string &&
+             data.severity in ["Low", "Medium", "High", "Critical"] &&
+             data.source_ip is string &&
+             data.timestamp is string &&
+             data.status in ["Active", "Blocked", "Resolved"];
+    }
+
+    function isValidTrafficLog(data) {
+      return data.source_ip is string &&
+             data.destination_ip is string &&
+             data.protocol is string &&
+             data.packet_size is number &&
+             data.timestamp is string;
+    }
+
+    function isValidBlockedIP(data) {
+      return data.ip_address is string &&
+             data.blocked_at is string;
+    }
+
+    match /alerts/{alertId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidAlert(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /traffic_logs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() && isValidTrafficLog(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /blocked_ips/{ip} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidBlockedIP(request.resource.data);
+      allow delete: if isAdmin();
+    }
+    
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+  }
+}

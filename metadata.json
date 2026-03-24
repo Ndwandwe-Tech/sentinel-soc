@@ -1,0 +1,5 @@
+{
+  "name": "Sentinel SOC",
+  "description": "A real-time cybersecurity monitoring platform with AI-driven anomaly detection and interactive threat dashboard.",
+  "requestFramePermissions": []
+}
